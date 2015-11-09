@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+  <head>
+     <title>firt example</title>
+  </head>
+  <body>
+   <div id="webglOutput"></div>
+   
+   <script type="text/javascript" src="../bower_components/three.js/three.js"></script>
+   <script type="text/javascript" src="../bower_components/jquery.min.js"></script>
+   <script type="text/javascript">
+            var startAngle = Math.PI/3;
+            var cubWidth = 4;
+            var cubes = [];
+            var scence = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,0.1,1000);
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setClearColorHex(0xEEEEEE,1.0);
+            renderer.setSize(window.innerWidth,window.innerHeight);
+            renderer.shadowMapEnabled = true;
+            var axes = new THREE.AxisHelper(20);
+            scence.add(axes);
+            var planeGeometry = new THREE.PlaneGeometry(60,40,1,1);
+            var planeMaterial = new THREE.MeshLambertMaterial({color:0xffffff});
+            var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+            plane.rotation.x = -0.5*Math.PI;
+            plane.position.y = 0;
+            plane.position.z = 0;
+            plane.receiveShadow = true;
+            scence.add(plane);
+
+            var cubeGeometry = new THREE.CubeGeometry(cubWidth,cubWidth,cubWidth);
+            var cubeMaterial = new THREE.MeshLambertMaterial({
+            	color:0xff0000
+            });
+            var cube = new THREE.Mesh(cubeGeometry,cubeMaterial);
+            cube.position.x = 20;
+            cube.position.y = 4;
+            cube.position.z = 0;
+            cube.castShadow = true;
+            
+            for(var i=0;i<8;i++){
+               cubes[i] = cube.clone();
+               cubes[i].position.z = i*(cubWidth+1) - 16;
+               scence.add(cubes[i]);
+            }
+            
+            //add another cube to hit the ball
+            //scence.add(cube);
+            var movingCubeGeometry = new THREE.CubeGeometry(2,2,8);
+            var movingCubeMaterial = new THREE.MeshLambertMaterial({
+                color:0x0a630a 
+            });
+            var movingCube = new THREE.Mesh(movingCubeGeometry,movingCubeMaterial);
+            movingCube.position.x = -20;
+            movingCube.position.y = 3;
+            movingCube.position.z = 0;
+            movingCube.castShadow = true;
+            scence.add(movingCube); 
+
+            var sphereGeometry = new THREE.SphereGeometry(2,18,18);
+            var sphereMaterial = new THREE.MeshLambertMaterial({
+            	color:0x7777ff
+            });
+            var sphere = new THREE.Mesh(sphereGeometry,sphereMaterial);
+
+            sphere.position.x = -1;
+            sphere.position.y = 3;
+            sphere.position.z = 0;
+            sphere.castShadow = true; 
+
+            scence.add(sphere);
+
+            /**
+            * adding light to the scence
+            **/
+            var spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.position.set(-40,60,-10);
+            spotLight.castShadow = true;
+            scence.add(spotLight);
+
+
+            camera.position.x = -30;
+            camera.position.y = 40;
+            camera.position.z =30;
+            camera.lookAt(scence.position);
+
+            $("#webglOutput").append(renderer.domElement);
+            renderer.render(scence,camera);
+
+            var sphereSpeed = 0.2;
+            var movingCubeSpeed = 0.8;
+            
+            var isBallTouchCube = function(cube){
+                var condition = sphere.position.x + 1 >= cube.position.x -2
+                              && sphere.position.z >=  cube.position.z-2 
+                              && sphere.position.z <=  cube.position.z+2; 
+                //console.log("the value of condition is:",condition);
+                return condition ? true : false;
+            }
+
+            /**
+            * check if moving cube touch the ball
+            **/
+            var movingCubeTouchTheBall = function(){
+                var condition = sphere.position.x - 1 <= movingCube.position.x + 1
+                                && sphere.position.z >= movingCube.position.z - 4
+                                && sphere.position.z <= movingCube.position.z + 4;
+                return condition? true : false;
+            }
+
+
+
+            window.addEventListener("keydown",function(e){
+                 
+                 if(e.keyCode==70){
+                    console.log("move left");
+                    movingCubeSpeed = - Math.abs(movingCubeSpeed);  
+                 }else if(e.keyCode==74){
+                    console.log("move right");
+                    movingCubeSpeed = Math.abs(movingCubeSpeed);
+                 }
+
+                 if(movingCube.position.z + 4 > 20 || movingCube.position.z-4 < -20){
+                  movingCubeSpeed = -movingCubeSpeed;
+                 }
+
+                 movingCube.position.z += movingCubeSpeed;
+
+            },true); 
+
+            startRender = function(){
+
+               if(sphere.position.z + 1 > 20){
+                  startAngle = Math.PI - startAngle;
+               }
+
+               if(sphere.position.z -1 < -20){
+                  startAngle = Math.PI*3 - startAngle;
+               }
+
+               if(sphere.position.x +1 > 30){
+                  startAngle = Math.PI*2 -startAngle;
+               }
+
+               if (sphere.position.x -1 < -30 || movingCubeTouchTheBall()) {
+                  startAngle = Math.PI*4 -startAngle;
+               };
+
+               cubes.forEach(function(v,k){
+                    if(isBallTouchCube(v)){
+                        startAngle = Math.PI*2 -startAngle;
+                        scence.remove(v);
+                        cubes.splice(k,1);
+                    }
+               });
+
+
+
+               var Vx = sphereSpeed * Math.sin(startAngle);
+               var Vz = sphereSpeed * Math.cos(startAngle);
+               
+               sphere.position.x += Vx;
+               sphere.position.z += Vz;
+               
+
+               renderer.render(scence,camera);
+               requestAnimationFrame(startRender);
+            }
+
+            startRender();
+
+
+   </script>
+  </body>
+</html>
